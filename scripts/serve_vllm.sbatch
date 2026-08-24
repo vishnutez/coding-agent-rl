@@ -46,14 +46,15 @@ echo "$(hostname):$PORT" > "$PROJECT_DIR/scripts/server_endpoint.txt"
 # SWE-bench phase config: thinking mode ON (default chat template, no
 # override — unlike the EvalPlus run, our own agent scaffold controls its
 # own max_tokens per turn, so there's no hardcoded budget forcing thinking
-# off) and a 128K context ceiling (up from EvalPlus's 32K) since multi-turn
-# agent trajectories — repo exploration, edits, test output — accumulate
-# far more context than a single-shot code-gen prompt. See
-# scripts/chat_template_no_think.jinja / git history for the EvalPlus config
-# this replaced.
+# off) and a 200K context ceiling, matching Qwen's own published SWE-bench
+# Verified evaluation config for this model (per the HF model card footnote:
+# "Internal agent scaffold (bash + file-edit tools); temp=1.0, top_p=0.95,
+# 200K context window") so our numbers are comparable to their reported
+# 73.4%. See scripts/chat_template_no_think.jinja / git history for the
+# EvalPlus config this replaced.
 exec vllm serve "$MODEL_DIR" \
     --served-model-name qwen3.6-35b-a3b-fp8 \
     --port "$PORT" \
     --gpu-memory-utilization 0.90 \
-    --max-model-len 131072 \
+    --max-model-len 200000 \
     --tensor-parallel-size 1

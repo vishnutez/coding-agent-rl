@@ -127,20 +127,88 @@ agent scaffold controls its own per-turn token budget, so:
       override). SWE-bench needs real multi-file reasoning to locate and fix
       bugs, unlike HumanEval/MBPP's function-level synthesis — worth the
       extra tokens/turn.
-- [x] **Max context: 131072** (up from EvalPlus's 32768) — multi-turn agent
-      trajectories (file views, edits, test output) accumulate far more
-      context than a single-shot completion; 128K gives headroom without
-      reserving the model's full 262K native context.
-- [x] Restarted the vLLM server (job 461673 on `dgx010:8000`) with this
+- [x] **Max context: 200000** — initially set to 131072, then raised to
+      match Qwen's own published SWE-bench Verified eval config for this
+      model exactly (HF model card footnote: *"Internal agent scaffold
+      (bash + file-edit tools); temp=1.0, top_p=0.95, 200K context window"*)
+      so our numbers are comparable to their reported 73.4% resolve rate.
+- [x] Restarted the vLLM server (job 461714 on `dgx010:8000`) with this
       config; verified thinking re-enabled via a direct completion test.
 
-### 4. Wire in the model
-- [ ] Decide on an agent scaffold to generate patches from the vLLM endpoint
-      (e.g. mini-swe-agent, or something bespoke) — SWE-bench Verified needs
-      a trajectory that produces a diff, not just a single completion
-- [ ] Point the scaffold's LLM client at the vLLM OpenAI-compatible endpoint
-- [ ] Generate predictions for all 500 instances, feed into the adapter from
-      step 2
+### 4. Wire in the model — scaffold built, smoke-testing 2026-08-24
+- [x] **Scaffold: mini-swe-agent**, not Qwen Code. Confirmed via the HF model
+      card footnote above that Qwen's own reported number came from an
+      undisclosed *internal* scaffold, not Qwen Code — described only as
+      "bash + file-edit tools", architecturally identical to mini-swe-agent's
+      minimal ReAct loop. Qwen Code (their interactive CLI product) would add
+      uncontrolled tooling/prompting on top, working against reproducibility.
+- [x] **Prompt format: backticks, not tool-calling.** mini-swe-agent ships
+      two variants: `swebench.yaml` (native OpenAI tool-calling) and
+      `swebench_backticks.yaml` (plain-text fenced-code-block commands,
+      regex-parsed). Went with backticks since our vLLM server isn't
+      configured with a tool-call parser for this model's architecture
+      (`qwen3_engine_tool_parser.py` exists in vLLM but untested here) —
+      avoids a whole class of "does structured tool-calling actually work
+      for this specific model" risk for no real benefit.
+- [x] **Custom environment: `scripts/swebench/pyxis_environment.py`**
+      (`PyxisEnvironment`, plugged in as `environment_class:
+      pyxis_environment.PyxisEnvironment`). mini-swe-agent's built-in
+      `DockerEnvironment`/`SingularityEnvironment` start one persistent
+      container and `exec` each agent step into it — pyxis has no
+      "exec into an already-running container" primitive. Design (confirmed
+      by direct testing): reserve one node via a placeholder
+      `sbatch --wrap="sleep N"` allocation, then run every agent step as a
+      `srun --jobid=<placeholder> --container-name=X` job step — confirmed
+      this persists container filesystem state across separate `srun`
+      invocations as long as they land on the same node (guaranteed here
+      since they're steps of one allocation), at ~2-3s overhead per step.
+      `cleanup()` just `scancel`s the placeholder job.
+- [x] **Wiring `get_sb_environment()`**: the installed package only
+      auto-resolves `instance["image"]` into the environment config for a
+      hardcoded list of class names (`docker`, `singularity`, `swerex_modal`,
+      `contree`) — a custom class needs a small monkeypatch to get the image
+      threaded through at all. `scripts/swebench/run_mini_swebench.py` does
+      this, plus dynamically injects the vLLM server's current host:port
+      (read from `server_endpoint.txt`) as `model.model_kwargs.api_base`,
+      since the server's node changes across restarts.
+- [x] **No SLURM array needed** — `mini-extra swebench --workers N` already
+      parallelizes across instances via a thread pool, and each thread's
+      `PyxisEnvironment` reserves its own placeholder allocation, so SLURM's
+      own scheduler handles the concurrency. This supersedes the earlier
+      "batch via SLURM job array" plan in section 2 — that's still the right
+      approach for the *grading* pass (running the swebench eval containers
+      against generated patches), but not needed for *generation*.
+- [x] **Smoke test on 1 instance (`astropy-12907`) — pipeline validated,
+      2 real bugs found and fixed en route:**
+  - `_query()` needs the paired `litellm_textbased` model class, not the
+    default `litellm` — the backticks *prompt* alone isn't enough, since the
+    default `LitellmModel` unconditionally sends `tools=[BASH_TOOL]` +
+    `tool_choice=auto` regardless of prompt wording, which our vLLM server
+    (no `--tool-call-parser` configured) rejects outright. Fixed by adding
+    `model.model_class: litellm_textbased` to `mini_config_overrides.yaml`.
+  - **`--container-writable` is required on *every* `execute()` call, not
+    just the initial container-creation step** — contradicts what our
+    earlier persistence smoke test suggested, because that test only did a
+    `cat` (read); pyxis re-mounts a named container read-only by default on
+    each new invocation regardless of how it was created. Without this, the
+    agent could explore/read the repo fine but every actual patch/build
+    attempt failed with "Read-only file system", derailing the trajectory.
+    Fixed in `pyxis_environment.py`'s `execute()`.
+  - After both fixes: the agent correctly diagnosed the real bug (nested
+    `CompoundModel` handling in `_cstack`), read the right files, and
+    applied a source fix ("Fix applied successfully"). It didn't reach
+    submission on this run — got stuck late in a `RepeatedFormatError` loop
+    while fighting `astropy`/`erfa`'s C-extension build (a real
+    environment-complexity issue on this instance, not an infra bug;
+    mini-swe-agent correctly gives up rather than hanging). `preds.json`
+    correctly recorded an empty patch for the unsubmitted instance, and the
+    placeholder SLURM allocation cleaned up properly.
+- [ ] Run a slightly larger batch (~5 instances, a few workers) to see the
+      typical submission rate/timing before committing to the full 500 —
+      one stuck instance isn't enough to judge normal behavior.
+- [ ] Generate predictions for all 500 instances once that looks healthy
+- [ ] Feed the resulting `preds.json` into the adapter from section 2 for
+      grading
 
 ### 5. Scale + report
 - [ ] Run the full Verified set, aggregate resolve rate

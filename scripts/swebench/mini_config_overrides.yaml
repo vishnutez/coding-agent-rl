@@ -1,0 +1,38 @@
+environment:
+  environment_class: pyxis_environment.PyxisEnvironment
+  env:
+    PAGER: cat
+    MANPAGER: cat
+    LESS: -R
+    PIP_PROGRESS_BAR: 'off'
+    TQDM_DISABLE: '1'
+    # bash -c is non-login so it won't source ~/.bashrc; point BASH_ENV at it
+    # so the image's `conda activate testbed` runs (else commands silently
+    # run in the base conda env, not the instance's env).
+    BASH_ENV: /root/.bashrc
+
+model:
+  # swebench_backticks.yaml's prompt asks for plain-text backtick-fenced
+  # commands, but the default model class (LitellmModel) unconditionally
+  # sends tools=[BASH_TOOL] + tool_choice=auto regardless of prompt, which
+  # our vLLM server rejects (no --tool-call-parser configured). The
+  # backticks prompt needs its paired model class, which sends no tools at
+  # all and instead regex-parses the response text.
+  model_class: litellm_textbased
+  model_name: "openai/qwen3.6-35b-a3b-fp8"
+  model_kwargs:
+    api_key: "none"
+    # Matches Qwen's own published SWE-bench Verified eval config for this
+    # model (HF model card footnote), for comparability with their reported
+    # 73.4% resolve rate.
+    temperature: 1.0
+    top_p: 0.95
+    drop_params: true
+  # Our local vLLM endpoint isn't in litellm's pricing registry; ignore
+  # missing cost/pricing data instead of erroring on every call.
+  cost_tracking: ignore_errors
+
+agent:
+  # Dollar cost limit is meaningless for a local model with no per-token
+  # pricing; rely on step_limit (inherited from the base config) instead.
+  cost_limit: 0
