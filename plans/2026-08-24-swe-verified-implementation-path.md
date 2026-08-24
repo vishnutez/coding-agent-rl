@@ -220,14 +220,54 @@ agent scaffold controls its own per-turn token budget, so:
 - [x] Feed predictions into the grading adapter — `grade_preds.py` does this
 
 ### 5. Scale + report
-- [ ] Run the full Verified set, aggregate resolve rate. Timing estimate
-      from the 5-instance batch: ~3.5 instance-minutes of work per instance
-      at 3-way concurrency (5:47 wall-clock ÷ 5 instances × 3 workers). At
-      3 workers, 500 instances would take ~10 hours — worth raising
-      concurrency significantly (cluster has ample idle CPU-only capacity;
-      each worker's placeholder allocation is cheap) but capped by how much
-      concurrent load the single vLLM server can absorb before generation
-      latency degrades. Need to decide a worker count before launching.
+- [x] **First full-500 attempt (16 workers) hit Docker Hub's anonymous pull
+      rate limit — 400/500 failed, not a model/agent problem.** Finished in
+      only 30:48 (vs. the ~2h estimate) because most instances failed
+      immediately at container creation rather than doing real work.
+      Confirmed root cause directly against the registry API:
+      ```
+      HTTP/2 429
+      x-ratelimit-limit: 100;w=3600
+      x-ratelimit-remaining: 0;w=3600
+      docker-ratelimit-source: 128.194.0.6
+      ```
+      100 pulls/hour, shared across the **whole cluster's egress IP** — not
+      per-user. SWE-bench Verified needs ~500 *distinct* images (one per
+      instance, not shared/reused), so 16 concurrent workers blew through
+      the quota almost instantly. Confirmed even Docker Official Images
+      (`ubuntu:22.04`) share the same quota — no separate/higher limit.
+      Breakdown: 400 `CalledProcessError` (image pull failure — infra, not
+      model), 72 `RepeatedFormatError` (genuine model outcome), 28
+      `Submitted` (genuine model outcome).
+- [x] **Fix: local enroot squashfs image cache** (`scripts/swebench/
+      image_cache.py` + `cache_images.py`) — pre-pull each of the ~500
+      unique images once via `--container-save=<path>.sqsh`, self-paced
+      (45s between attempts, resumable, retries failures) to stay under the
+      quota. `pyxis_environment.py` (agent generation) and
+      `swebench_pyxis.py` (grading) both now resolve through
+      `resolve_image_ref()`, which prefers a local cached file over a fresh
+      `docker://` pull. Once fully cached, this project never needs to pull
+      from Docker Hub again for this dataset — including future reruns and
+      eventual verl RL rollouts reusing the same repos. Caching launched in
+      background 2026-08-24, ~6+ hour one-time cost at this pacing.
+- [x] **Resume semantics**: `mini-extra swebench`'s default (`--redo-existing`
+      off) skips any instance already present in the output dir's
+      `preds.json` — but that file gets an entry for *every* instance
+      regardless of outcome (success or failure), so a naive rerun would
+      skip the 400 infra failures too. Fixed by filtering `preds.json` down
+      to only the instance_ids whose `exit_status` (from the run's
+      `exit_statuses_*.yaml`) was genuine (`Submitted` or
+      `RepeatedFormatError`), removing the 400 `CalledProcessError` entries,
+      then rerunning against the same output dir — correctly resumed on
+      exactly the 400 that needed it ("Skipping 100 existing instances,
+      Running on 400 instances"). This filter-and-resume pattern is
+      reusable for any future partial-failure recovery, not a one-off.
+- [ ] Resumed run launched at reduced concurrency (4 workers, down from 16)
+      while the image cache is still building, to avoid re-flooding the
+      still-recovering rate limit; scale concurrency back up once cache
+      coverage is substantial.
+- [ ] Once the full 500 have genuine (non-infra-failure) outcomes, grade all
+      submitted patches with `grade_preds.py`, aggregate resolve rate
 - [ ] Decide whether the pyxis adapter is worth generalizing into reusable
       infra for future evals/RL rollouts on this cluster, given verl is the
       eventual training stack

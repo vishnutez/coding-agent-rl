@@ -5,3 +5,8 @@ __pycache__/
 *.pyc
 scripts/server_endpoint.txt
 slurm-*.out
+# Full-scale (500-instance) runs generate too much raw trajectory data to
+# commit; small validation batches (sanity_check, mini_smoke_test,
+# mini_batch5, grading) stay tracked as evidence. Commit an aggregate
+# report for full runs instead.
+swebench_runs/full_run_*/

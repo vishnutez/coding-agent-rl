@@ -14,6 +14,8 @@ from pathlib import Path
 from swebench.harness.grading import get_eval_report
 from swebench.harness.utils import load_swebench_dataset, make_test_spec
 
+from image_cache import resolve_image_ref
+
 GIT_APPLY_CMDS = [
     "git apply --verbose",
     "git apply --verbose --3way",
@@ -87,7 +89,7 @@ def run_instance_container(
         f"--cpus-per-task={cpus}",
         f"--mem={mem}",
         f"--time={max(1, timeout_s // 60)}",
-        f"--container-image=docker://{test_spec.image}",
+        f"--container-image={resolve_image_ref(test_spec.image)}",
         f"--container-mounts={staging_dir}:/staging",
         "--container-workdir=/testbed",
         # Enroot mounts the container rootfs read-only by default (unlike

@@ -25,6 +25,7 @@ sys.path.insert(0, str(SCRIPT_DIR))  # for `import pyxis_environment`
 import minisweagent.run.benchmarks.swebench as sb  # noqa: E402
 from minisweagent.config import builtin_config_dir  # noqa: E402
 from minisweagent.environments import get_environment  # noqa: E402
+from image_cache import resolve_image_ref  # noqa: E402
 
 _original_get_sb_environment = sb.get_sb_environment
 
@@ -41,7 +42,11 @@ def _patched_get_sb_environment(config: dict, instance: dict):
         # combined with our "docker://" scheme prefix produces a malformed
         # "docker://docker.io/..." reference pyxis rejects.
         image_name = sb.get_swebench_docker_image_name(instance).removeprefix("docker.io/")
-        env_config["image"] = f"docker://{image_name}"
+        # Prefer a locally-cached squashfs (see image_cache.py) over a fresh
+        # docker:// pull -- Docker Hub's anonymous rate limit (100/hour,
+        # shared cluster-wide) can't sustain ~500 distinct image pulls in
+        # one run.
+        env_config["image"] = resolve_image_ref(image_name)
         env = get_environment(env_config)
         if startup_command := config.get("run", {}).get("env_startup_command"):
             from jinja2 import StrictUndefined, Template
