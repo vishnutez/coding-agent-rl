@@ -1,0 +1,20 @@
+[
+  {
+    "instance_id": "astropy__astropy-13033",
+    "resolved": false,
+    "returncode": 0,
+    "log_path": "/scratch/project/prj-02-llm-reasoning-kalathil/vishnukunde/coding-agent-rl/swebench_runs/grading/astropy__astropy-13033/test_output.txt"
+  },
+  {
+    "instance_id": "astropy__astropy-12907",
+    "resolved": true,
+    "returncode": 0,
+    "log_path": "/scratch/project/prj-02-llm-reasoning-kalathil/vishnukunde/coding-agent-rl/swebench_runs/grading/astropy__astropy-12907/test_output.txt"
+  },
+  {
+    "instance_id": "astropy__astropy-13236",
+    "resolved": false,
+    "returncode": 0,
+    "log_path": "/scratch/project/prj-02-llm-reasoning-kalathil/vishnukunde/coding-agent-rl/swebench_runs/grading/astropy__astropy-13236/test_output.txt"
+  }
+]

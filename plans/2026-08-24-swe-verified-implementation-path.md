@@ -203,15 +203,31 @@ agent scaffold controls its own per-turn token budget, so:
     mini-swe-agent correctly gives up rather than hanging). `preds.json`
     correctly recorded an empty patch for the unsubmitted instance, and the
     placeholder SLURM allocation cleaned up properly.
-- [ ] Run a slightly larger batch (~5 instances, a few workers) to see the
-      typical submission rate/timing before committing to the full 500 —
-      one stuck instance isn't enough to judge normal behavior.
-- [ ] Generate predictions for all 500 instances once that looks healthy
-- [ ] Feed the resulting `preds.json` into the adapter from section 2 for
-      grading
+- [x] **5-instance batch (3 workers) — full pipeline validated end-to-end,
+      including grading:** 5/5 completed in 5:47 wall-clock. 3 `Submitted`,
+      2 `RepeatedFormatError`. Wrote `scripts/swebench/grade_preds.py`
+      (thread-pooled wrapper around `swebench_pyxis.py`, reused unchanged
+      from section 2) and graded the 3 submitted patches:
+      **`astropy-12907` resolved=True** — the agent's own generated patch
+      actually fixes the real bug, matching our earlier gold-patch baseline
+      for the same instance. The other two (`astropy-13033`, `astropy-13236`)
+      submitted but didn't resolve. 1/5 (20%) resolved on this tiny sample —
+      not remotely statistically meaningful, but confirms the full chain
+      (mini-swe-agent → PyxisEnvironment → vLLM → pyxis grading adapter)
+      produces a genuine, correctly-graded signal, not just plumbing that runs.
+- [x] Generate predictions — proven at small scale; full 500-instance run is
+      the next step (section 5)
+- [x] Feed predictions into the grading adapter — `grade_preds.py` does this
 
 ### 5. Scale + report
-- [ ] Run the full Verified set, aggregate resolve rate
+- [ ] Run the full Verified set, aggregate resolve rate. Timing estimate
+      from the 5-instance batch: ~3.5 instance-minutes of work per instance
+      at 3-way concurrency (5:47 wall-clock ÷ 5 instances × 3 workers). At
+      3 workers, 500 instances would take ~10 hours — worth raising
+      concurrency significantly (cluster has ample idle CPU-only capacity;
+      each worker's placeholder allocation is cheap) but capped by how much
+      concurrent load the single vLLM server can absorb before generation
+      latency degrades. Need to decide a worker count before launching.
 - [ ] Decide whether the pyxis adapter is worth generalizing into reusable
       infra for future evals/RL rollouts on this cluster, given verl is the
       eventual training stack
