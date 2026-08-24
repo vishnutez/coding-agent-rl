@@ -1,0 +1,6 @@
+models/
+logs/
+*.log
+__pycache__/
+*.pyc
+scripts/server_endpoint.txt
