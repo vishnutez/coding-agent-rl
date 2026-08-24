@@ -43,18 +43,17 @@ export PATH="$CUDA_HOME/bin:$PATH"
 # Advertise where this server is running so client scripts can find it.
 echo "$(hostname):$PORT" > "$PROJECT_DIR/scripts/server_endpoint.txt"
 
-# This checkpoint is a hybrid-thinking model (Qwen-style <think> toggle in
-# its chat template) that free-generates a reasoning trace by default. The
-# EvalPlus harness we're using hardcodes a 768-token generation budget with
-# no way to raise it or pass enable_thinking=false per-request, so thinking
-# left on would mostly get truncated mid-reasoning before any code appears.
-# This patched template flips the *default* to non-thinking (still opt-in-able
-# via enable_thinking=true in chat_template_kwargs, for future callers that
-# want reasoning mode with a larger token budget).
+# SWE-bench phase config: thinking mode ON (default chat template, no
+# override — unlike the EvalPlus run, our own agent scaffold controls its
+# own max_tokens per turn, so there's no hardcoded budget forcing thinking
+# off) and a 128K context ceiling (up from EvalPlus's 32K) since multi-turn
+# agent trajectories — repo exploration, edits, test output — accumulate
+# far more context than a single-shot code-gen prompt. See
+# scripts/chat_template_no_think.jinja / git history for the EvalPlus config
+# this replaced.
 exec vllm serve "$MODEL_DIR" \
     --served-model-name qwen3.6-35b-a3b-fp8 \
-    --chat-template "$PROJECT_DIR/scripts/chat_template_no_think.jinja" \
     --port "$PORT" \
     --gpu-memory-utilization 0.90 \
-    --max-model-len 32768 \
+    --max-model-len 131072 \
     --tensor-parallel-size 1

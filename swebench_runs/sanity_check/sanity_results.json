@@ -1,0 +1,34 @@
+[
+  {
+    "instance_id": "astropy__astropy-12907",
+    "label": "gold",
+    "resolved": true,
+    "expected": true,
+    "ok": true,
+    "log_path": "/scratch/project/prj-02-llm-reasoning-kalathil/vishnukunde/coding-agent-rl/swebench_runs/sanity_check/gold/astropy__astropy-12907/test_output.txt"
+  },
+  {
+    "instance_id": "astropy__astropy-12907",
+    "label": "empty",
+    "resolved": false,
+    "expected": false,
+    "ok": true,
+    "log_path": "/scratch/project/prj-02-llm-reasoning-kalathil/vishnukunde/coding-agent-rl/swebench_runs/sanity_check/empty/astropy__astropy-12907/test_output.txt"
+  },
+  {
+    "instance_id": "astropy__astropy-13033",
+    "label": "gold",
+    "resolved": true,
+    "expected": true,
+    "ok": true,
+    "log_path": "/scratch/project/prj-02-llm-reasoning-kalathil/vishnukunde/coding-agent-rl/swebench_runs/sanity_check/gold/astropy__astropy-13033/test_output.txt"
+  },
+  {
+    "instance_id": "astropy__astropy-13033",
+    "label": "empty",
+    "resolved": false,
+    "expected": false,
+    "ok": true,
+    "log_path": "/scratch/project/prj-02-llm-reasoning-kalathil/vishnukunde/coding-agent-rl/swebench_runs/sanity_check/empty/astropy__astropy-13033/test_output.txt"
+  }
+]
