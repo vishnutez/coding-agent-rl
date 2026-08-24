@@ -262,10 +262,32 @@ agent scaffold controls its own per-turn token budget, so:
       exactly the 400 that needed it ("Skipping 100 existing instances,
       Running on 400 instances"). This filter-and-resume pattern is
       reusable for any future partial-failure recovery, not a one-off.
-- [ ] Resumed run launched at reduced concurrency (4 workers, down from 16)
-      while the image cache is still building, to avoid re-flooding the
-      still-recovering rate limit; scale concurrency back up once cache
-      coverage is substantial.
+- [x] **Discovered mid-cache: disk cost is self-inflicted.** A plain
+      `docker://` pull (no `--container-save`) extracts to the compute
+      node's *local* `/tmp`, not `/scratch` — costs no persistent quota,
+      only Docker Hub's rate limit applies. The disk-space problem only
+      exists because `--container-save` explicitly persists a squashfs.
+      Also found the *entire shared cluster filesystem* (not just this
+      project's quota) was at 96% full, ~347GB free total — so capped the
+      cache at 100GB (`--max-cache-gb`, reduced from an initial 300GB) to
+      avoid eating most of the remaining shared headroom. Whatever isn't
+      cached falls back to a paced live pull at eval time via
+      `resolve_image_ref()` — no code changes needed there, it already
+      preferred cache-if-present.
+- [x] **Cache run completed cleanly**: hit the 100GB budget at 35 images
+      cached, 0 failures. Remaining 465 images fall back to live pulls.
+- [x] **Resume-filter bug caught and fixed**: an earlier interrupted resume
+      attempt (killed mid-run once we realized caching + eval was
+      double-hammering the still-recovering rate limit) had already written
+      92 more `CalledProcessError` entries into `preds.json` before being
+      stopped. Relaunching without re-filtering would have incorrectly
+      skipped those 92 as "done" — fixed by taking the **union** of
+      `CalledProcessError` instance_ids across *all* `exit_statuses_*.yaml`
+      snapshots (not just the first one) before filtering, confirming back
+      to exactly the original 100 genuine results before relaunching.
+- [x] Resumed run launched at reduced concurrency (4 workers, down from 16)
+      alongside the cache build — confirmed **0 CalledProcessError** in this
+      batch as of the first ~40/400 instances, rate limit fix holding.
 - [ ] Once the full 500 have genuine (non-infra-failure) outcomes, grade all
       submitted patches with `grade_preds.py`, aggregate resolve rate
 - [ ] Decide whether the pyxis adapter is worth generalizing into reusable
