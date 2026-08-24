@@ -6,14 +6,15 @@ Official Images share this quota, confirmed 2026-08-24). Resumable: skips
 images that already have a nonzero-size .sqsh file.
 
 Images average ~2.7GB each; all ~500 distinct Verified images would need
-~1.35TB, which doesn't fit in available scratch space (~379GB shared
-project / ~733GB personal, confirmed 2026-08-24). So this stops once
---max-cache-gb is reached rather than trying to cache everything --
-partial coverage still avoids re-pulling those images on every future run;
-whatever isn't cached falls back to a paced live docker:// pull at eval
-time (image_cache.py's resolve_image_ref()), which costs no persistent
-disk since enroot extracts uncached pulls to the compute node's local
-/tmp, not /scratch.
+~1.35TB, which doesn't fit in available scratch space. Worse, the
+*entire shared cluster filesystem* (not just this project's quota) was
+at 96% full with only ~347GB free total when this was discovered
+(2026-08-24) -- so the cache budget default is kept modest (100GB, ~35
+images) to avoid eating most of the remaining shared headroom. Whatever
+isn't cached falls back to a paced live docker:// pull at eval time
+(image_cache.py's resolve_image_ref()), which costs no persistent disk
+since enroot extracts uncached pulls to the compute node's local /tmp,
+not /scratch.
 
 Usage: python cache_images.py [--sleep SECONDS] [--max-attempts N] [--max-cache-gb N]
 """
@@ -67,7 +68,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sleep", type=float, default=45.0, help="seconds between attempts, regardless of outcome")
     ap.add_argument("--max-attempts", type=int, default=1, help="retry attempts per image before giving up")
-    ap.add_argument("--max-cache-gb", type=float, default=300.0, help="stop once cache reaches this size")
+    ap.add_argument("--max-cache-gb", type=float, default=100.0, help="stop once cache reaches this size")
     args = ap.parse_args()
 
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
