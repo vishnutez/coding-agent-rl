@@ -10,3 +10,5 @@ slurm-*.out
 # mini_batch5, grading) stay tracked as evidence. Commit an aggregate
 # report for full runs instead.
 swebench_runs/full_run_*/
+# Local enroot squashfs image cache -- large binary blobs, never commit.
+image_cache/

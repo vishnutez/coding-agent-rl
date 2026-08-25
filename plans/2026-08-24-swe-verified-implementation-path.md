@@ -286,8 +286,32 @@ agent scaffold controls its own per-turn token budget, so:
       snapshots (not just the first one) before filtering, confirming back
       to exactly the original 100 genuine results before relaunching.
 - [x] Resumed run launched at reduced concurrency (4 workers, down from 16)
-      alongside the cache build — confirmed **0 CalledProcessError** in this
-      batch as of the first ~40/400 instances, rate limit fix holding.
+      alongside the cache build. **Completed 400/400 in 3:31:26**: 236
+      `RepeatedFormatError`, 113 `Submitted`, only 51 `CalledProcessError`
+      (down from 400 -- rate-limit fix working, ~87% reduction). Combined
+      with the original 100 preserved: 449/500 genuine outcomes.
+- [x] **Caught my own bug**: after this run finished, tried the same
+      "union of `CalledProcessError` across all `exit_statuses_*.yaml`
+      snapshots" filter from before -- but that's wrong once an instance
+      has actually been *retried*: a union of "ever failed" incorrectly
+      keeps re-flagging instances that failed in an *earlier* run and then
+      succeeded in a *later* one, since old yaml snapshots never get
+      corrected. It silently overwrote `preds.json` back down to 100
+      entries, discarding all 349 new genuine results. Recovered by
+      reconstructing `preds.json` directly from every instance's
+      `<id>.traj.json` (`info.exit_status`/`info.submission` -- the actual
+      per-instance source of truth, not a derived snapshot) — correctly
+      restored 449 entries. **Lesson: determine what's missing from
+      `preds.json`'s own keys (or trajectory files) directly, never from a
+      union of historical yaml snapshots** — status snapshots become stale
+      the moment something gets retried.
+- [x] **vLLM server hit its 8h SLURM time limit** (`TIMEOUT` at
+      2026-08-25T00:14, discovered ~11h later when checking status again —
+      a large real-world gap occurred during a session
+      reconnect/disconnect). Restarted (job 463492).
+- [ ] Retry the remaining 51 `CalledProcessError` instances (identified by
+      diffing the full 500-instance dataset against `preds.json`'s keys,
+      not any stored snapshot) once the vLLM server is back up
 - [ ] Once the full 500 have genuine (non-infra-failure) outcomes, grade all
       submitted patches with `grade_preds.py`, aggregate resolve rate
 - [ ] Decide whether the pyxis adapter is worth generalizing into reusable
