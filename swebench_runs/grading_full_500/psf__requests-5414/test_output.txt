@@ -1,0 +1,45 @@
+srun: job 463867 queued and waiting for resources
+srun: job 463867 has been allocated resources
+pyxis: importing docker image: docker://swebench/sweb.eval.x86_64.psf_1776_requests-5414:latest
+pyxis: imported docker image: docker://swebench/sweb.eval.x86_64.psf_1776_requests-5414:latest
+Checking patch requests/models.py...
+error: while searching for:
+        # non-ASCII characters. This allows users to automatically get the correct IDNA
+        # behaviour. For strings containing only ASCII characters, we need to also verify
+        # it doesn't start with a wildcard (*), before allowing the unencoded hostname.
+        if not unicode_is_ascii(host):
+            try:
+            host = self._get_idna_encoded_host(host)
+            except UnicodeError:
+                raise InvalidURL('URL has an invalid label.')
+        elif host.startswith(u'*'):
+            raise InvalidURL('URL has an invalid label.')
+
+        # Carefully reconstruct the network location
+
+error: patch failed: requests/models.py:398
+error: requests/models.py: patch does not apply
+Checking patch requests/models.py...
+error: requests/models.py: does not match index
+Checking patch requests/models.py...
+error: while searching for:
+        # non-ASCII characters. This allows users to automatically get the correct IDNA
+        # behaviour. For strings containing only ASCII characters, we need to also verify
+        # it doesn't start with a wildcard (*), before allowing the unencoded hostname.
+        if not unicode_is_ascii(host):
+            try:
+            host = self._get_idna_encoded_host(host)
+            except UnicodeError:
+                raise InvalidURL('URL has an invalid label.')
+        elif host.startswith(u'*'):
+            raise InvalidURL('URL has an invalid label.')
+
+        # Carefully reconstruct the network location
+
+error: patch failed: requests/models.py:398
+Applying patch requests/models.py with 1 reject...
+Rejected hunk #1.
+patching file requests/models.py
+Hunk #1 FAILED at 398.
+1 out of 1 hunk FAILED -- saving rejects to file requests/models.py.rej
+>>>>> Patch Apply Failed

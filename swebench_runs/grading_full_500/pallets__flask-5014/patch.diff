@@ -1,0 +1,19 @@
+diff --git a/src/flask/blueprints.py b/src/flask/blueprints.py
+index eb50585d..71ba1f81 100644
+--- a/src/flask/blueprints.py
++++ b/src/flask/blueprints.py
+@@ -190,9 +190,14 @@ class Blueprint(Scaffold):
+             root_path=root_path,
+         )
+ 
++        if name is None:
++            raise ValueError("'name' may not be None.")
++        if not name or not name.strip():
++            raise ValueError("'name' may not be empty or whitespace-only.")
+         if "." in name:
+             raise ValueError("'name' may not contain a dot '.' character.")
+ 
++
+         self.name = name
+         self.url_prefix = url_prefix
+         self.subdomain = subdomain

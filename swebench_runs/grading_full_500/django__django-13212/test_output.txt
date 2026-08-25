@@ -1,0 +1,26 @@
+srun: job 463749 queued and waiting for resources
+srun: job 463749 has been allocated resources
+pyxis: importing docker image: docker://swebench/sweb.eval.x86_64.django_1776_django-13212:latest
+pyxis: imported docker image: docker://swebench/sweb.eval.x86_64.django_1776_django-13212:latest
+/staging/patch.diff:138: trailing whitespace.
+                params={'value': value, 
+Checking patch -...
+error: -: No such file or directory
+/staging/patch.diff:138: trailing whitespace.
+                params={'value': value, 
+Checking patch -...
+error: -: does not exist in index
+/staging/patch.diff:138: trailing whitespace.
+                params={'value': value, 
+Checking patch -...
+error: -: No such file or directory
+can't find file to patch at input line 3
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- /testbed/django/core/validators.py.backup	2026-08-24 23:35:18.863615772 +0000
+|+++ -	2026-08-24 23:37:03.344155424 +0000
+--------------------------
+No file to patch.  Skipping patch.
+12 out of 12 hunks ignored
+>>>>> Patch Apply Failed

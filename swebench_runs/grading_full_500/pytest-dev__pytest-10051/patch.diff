@@ -1,0 +1,41 @@
+diff --git a/src/_pytest/logging.py b/src/_pytest/logging.py
+index a4f4214b1..ab8536daf 100644
+--- a/src/_pytest/logging.py
++++ b/src/_pytest/logging.py
+@@ -335,6 +335,7 @@ class LogCaptureHandler(logging_StreamHandler):
+         """Create a new log handler."""
+         super().__init__(StringIO())
+         self.records: List[logging.LogRecord] = []
++        self._when: Optional[str] = None
+ 
+     def emit(self, record: logging.LogRecord) -> None:
+         """Keep the log records in a list in addition to the log text."""
+@@ -345,6 +346,10 @@ class LogCaptureHandler(logging_StreamHandler):
+         self.records = []
+         self.stream = StringIO()
+ 
++    def set_when(self, when: Optional[str]) -> None:
++        """Set the current test phase (setup/call/teardown)."""
++        self._when = when
++
+     def handleError(self, record: logging.LogRecord) -> None:
+         if logging.raiseExceptions:
+             # Fail the test if the log message is bad (emit failed).
+@@ -441,6 +446,9 @@ class LogCaptureFixture:
+     def clear(self) -> None:
+         """Reset the list of log records and the captured log text."""
+         self.handler.reset()
++        # Update stash reference to keep in sync with handler
++        if self.handler._when and caplog_records_key in self._item.stash:
++            self._item.stash[caplog_records_key][self.handler._when] = self.handler.records
+ 
+     def set_level(self, level: Union[int, str], logger: Optional[str] = None) -> None:
+         """Set the level of a logger for the duration of a test.
+@@ -697,6 +705,7 @@ class LoggingPlugin:
+             caplog_handler.reset()
+             report_handler.reset()
+             item.stash[caplog_records_key][when] = caplog_handler.records
++            caplog_handler.set_when(when)
+             item.stash[caplog_handler_key] = caplog_handler
+ 
+             yield

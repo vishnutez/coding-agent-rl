@@ -1,0 +1,9 @@
+srun: job 463865 queued and waiting for resources
+srun: job 463865 has been allocated resources
+pyxis: importing docker image: docker://swebench/sweb.eval.x86_64.psf_1776_requests-1766:latest
+pyxis: imported docker image: docker://swebench/sweb.eval.x86_64.psf_1776_requests-1766:latest
+error: unrecognized input
+error: unrecognized input
+error: unrecognized input
+patch: **** Only garbage was found in the patch input.
+>>>>> Patch Apply Failed

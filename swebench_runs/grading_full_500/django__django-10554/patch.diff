@@ -1,0 +1,15 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 08d7faf194..adb0ce52c0 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -327,6 +327,10 @@ class Query(BaseExpression):
+         if 'subq_aliases' in self.__dict__:
+             obj.subq_aliases = self.subq_aliases.copy()
+         obj.used_aliases = self.used_aliases.copy()
++        # Clone combined_queries for combinator queries to avoid
++        # issues with derived querysets affecting the original
++        if self.combined_queries:
++            obj.combined_queries = tuple(q.clone() for q in self.combined_queries)
+         obj._filtered_relations = self._filtered_relations.copy()
+         # Clear the cached_property
+         try:

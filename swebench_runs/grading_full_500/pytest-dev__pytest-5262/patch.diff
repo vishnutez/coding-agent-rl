@@ -1,0 +1,19 @@
+diff --git a/src/_pytest/capture.py b/src/_pytest/capture.py
+index 25eab7fd..5818214c 100644
+--- a/src/_pytest/capture.py
++++ b/src/_pytest/capture.py
+@@ -429,6 +429,14 @@ class EncodedFile(object):
+         self.buffer = buffer
+         self.encoding = encoding
+ 
++    @property
++    def mode(self):
++        """Return a text mode (no 'b' flag) to match the expected write interface."""
++        m = getattr(self.buffer, 'mode', 'r')
++        if "b" in m:
++            m = m.replace("b", "")
++        return m
++
+     def write(self, obj):
+         if isinstance(obj, six.text_type):
+             obj = obj.encode(self.encoding, "replace")

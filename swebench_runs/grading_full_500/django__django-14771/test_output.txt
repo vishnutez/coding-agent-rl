@@ -1,0 +1,15 @@
+srun: job 463774 queued and waiting for resources
+srun: job 463774 has been allocated resources
+pyxis: importing docker image: docker://swebench/sweb.eval.x86_64.django_1776_django-14771:latest
+[2026-08-25T11:59:07.272] error: pyxis: child 2847468 failed with error code: 23
+[2026-08-25T11:59:07.272] error: pyxis: failed to import docker image
+[2026-08-25T11:59:07.272] error: pyxis: printing enroot log file:
+[2026-08-25T11:59:07.272] error: pyxis:     [INFO] Querying registry for permission grant
+[2026-08-25T11:59:07.272] error: pyxis:     [INFO] Authenticating with user: <anonymous>
+[2026-08-25T11:59:07.272] error: pyxis:     [INFO] Authentication succeeded
+[2026-08-25T11:59:07.272] error: pyxis:     [INFO] Fetching image manifest list
+[2026-08-25T11:59:07.272] error: pyxis: couldn't start container
+[2026-08-25T11:59:07.272] error: spank: required plugin spank_pyxis.so: task_init() failed with rc=-1
+[2026-08-25T11:59:07.272] error: Failed to invoke spank plugin stack
+[2026-08-25T11:59:07.342] error: pyxis: child 2848490 failed with error code: 1
+srun: error: dgx002: task 0: Exited with exit code 1

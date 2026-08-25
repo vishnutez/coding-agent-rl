@@ -1,0 +1,5 @@
+"""
+...
+Changes made:
+  - Replaced kwargs['db'] with kwargs['database'] on line 203
+  - Replaced kwargs['passwd'] with kwargs['password'] on line 205

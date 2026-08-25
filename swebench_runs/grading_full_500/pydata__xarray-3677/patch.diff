@@ -1,0 +1,17 @@
+diff --git a/xarray/core/merge.py b/xarray/core/merge.py
+index 10c7804d..819455dd 100644
+--- a/xarray/core/merge.py
++++ b/xarray/core/merge.py
+@@ -814,6 +814,12 @@ def dataset_merge_method(
+     else:
+         overwrite_vars = {overwrite_vars}
+ 
++    # Convert DataArray to Dataset if needed
++    from .dataarray import DataArray
++    
++    if isinstance(other, DataArray):
++        other = other.to_dataset()
++
+     if not overwrite_vars:
+         objs = [dataset, other]
+         priority_arg = None

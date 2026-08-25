@@ -309,14 +309,62 @@ agent scaffold controls its own per-turn token budget, so:
       2026-08-25T00:14, discovered ~11h later when checking status again —
       a large real-world gap occurred during a session
       reconnect/disconnect). Restarted (job 463492).
-- [ ] Retry the remaining 51 `CalledProcessError` instances (identified by
-      diffing the full 500-instance dataset against `preds.json`'s keys,
-      not any stored snapshot) once the vLLM server is back up
-- [ ] Once the full 500 have genuine (non-infra-failure) outcomes, grade all
-      submitted patches with `grade_preds.py`, aggregate resolve rate
-- [ ] Decide whether the pyxis adapter is worth generalizing into reusable
-      infra for future evals/RL rollouts on this cluster, given verl is the
-      eventual training stack
+- [x] Retried the remaining 51 `CalledProcessError` instances after the
+      vLLM server restart — **51/51 completed, zero infra failures**
+      (36 `RepeatedFormatError`, 15 `Submitted`). Rate-limit fix held
+      perfectly under real conditions. All 500/500 instances now have
+      genuine (non-infra-failure) outcomes.
+- [x] **Graded all 152 submitted patches with `grade_preds.py`: 92
+      resolved.**
+
+## Results — Qwen3.6-35B-A3B-FP8, SWE-bench Verified (2026-08-25)
+
+Full 500-instance run, thinking mode on, temp=1.0/top_p=0.95/200K context
+(matching Qwen's own published eval config), mini-swe-agent (backticks
+prompt variant) + Pyxis/Enroot adapter, greedy≠ — sampled per Qwen's config.
+
+| Metric | Count | Rate |
+|---|---|---|
+| Submitted (produced a patch) | 152 / 500 | 30.4% |
+| Resolved, of submitted | 92 / 152 | 60.5% |
+| **Resolved, overall** | **92 / 500** | **18.4%** |
+| RepeatedFormatError (never submitted) | 344 / 500 | 68.8% |
+| Empty patch (submitted but blank) | ~4 | — |
+
+**The bottleneck is submission rate, not coding ability.** Among patches
+that *did* get submitted, 60.5% resolved the actual bug — a strong rate.
+But 68.8% of instances never produced a patch at all, timing out on
+`step_limit` while stuck in a `RepeatedFormatError` loop (usually fighting
+environment/build issues — C-extension compiles, missing deps — as seen
+in the very first smoke test on `astropy-12907`, which needed several
+retries before succeeding). This is far below Qwen's own reported 73.4% —
+the gap is most plausibly the harness (a minimal, unaudited backticks
+prompt vs. Qwen's own undisclosed "internal agent scaffold"), not evidence
+the model itself is much weaker than reported.
+
+**Follow-up ideas if this is worth improving** (not yet attempted):
+- Raise `agent.step_limit` (currently the swebench_backticks.yaml default)
+  — instances that get stuck fighting environment setup may just need more
+  turns to recover
+- Try the native tool-calling variant (`swebench.yaml` instead of
+  `swebench_backticks.yaml`) with the vLLM server restarted using
+  `--enable-auto-tool-choice --tool-call-parser qwen3` (untested this
+  session) — structured tool calls may be more reliable than regex-parsed
+  backticks for a model that may naturally drift toward tool-call-style
+  output
+- Inspect a sample of `RepeatedFormatError` trajectories directly to see
+  if there's a common, fixable pattern (e.g. a specific way responses
+  drift out of format under certain conditions)
+
+## Next: reusable infra decision
+
+- [ ] Decide whether the pyxis adapter (`pyxis_environment.py`,
+      `swebench_pyxis.py`, `image_cache.py`) is worth generalizing into
+      reusable infra for future evals/RL rollouts on this cluster, given
+      verl is the eventual training stack — the placeholder-allocation +
+      `--container-name` persistence pattern and the image-cache/rate-limit
+      workaround are both directly reusable for any future pyxis-backed
+      sandboxed execution need, not just this one eval
 
 ## Open questions to revisit
 

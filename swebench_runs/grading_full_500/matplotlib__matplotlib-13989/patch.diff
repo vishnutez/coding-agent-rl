@@ -1,0 +1,45 @@
+-                error_message = (
+-                    "color kwarg must have one color per data set. %d data "
+-                    "sets and %d colors were provided" % (nx, len(color)))
+-                raise ValueError(error_message)
+-
+-        hist_kwargs = dict()
+-
+-        # if the bin_range is not given, compute without nan numpy
+-        # does not do this for us when guessing the range (but will
+-        # happily ignore nans when computing the histogram).
+-        if bin_range is None:
+--
+-                _w = None
+-
+-            bins = histogram_bin_edges(np.concatenate(x),
+-                                       bins, bin_range, _w)
+-        else:
+-            hist_kwargs['range'] = bin_range
+-
+-        density = bool(density) or bool(normed)
+-        if density and not stacked:
+-            hist_kwargs.update(density=density)
+-
+-        # List to store all the top coordinates of the histograms
+-        tops = []
+-        mlast = None
+-        # Loop through datasets
+-        for i in range(nx):
+-            # this will automatically overwrite bins,
+-            # so that each histogram uses the same bins
+-            m, bins = np.histogram(x[i], bins, weights=w[i], **hist_kwargs)
+-            m = m.astype(float)  # causes problems later if it's an int
+-            if mlast is None:
+-                mlast = np.zeros(len(bins)-1, m.dtype)
+-            if stacked:
+-                m += mlast
+--
+-    tricontourf = mtri.tricontourf
+-    tripcolor = mtri.tripcolor
+-    triplot = mtri.triplot
++     1	        density = bool(density) or bool(normed)
++     2	        if density and not stacked:
++     3	            hist_kwargs.update(density=density)
++     4	
++     5	        # List to store all the top coordinates of the histograms

@@ -1,0 +1,17 @@
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 3a506543ac..b802bcad33 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -168,10 +168,10 @@ def _get_aligned_offsets(hd_list, height, align="baseline"):
+         offsets = [0. for h, d in hd_list]
+     elif align in ["left", "top"]:
+         descent = 0.
+-        offsets = [d for h, d in hd_list]
++        offsets = [height - h + d for h, d in hd_list]
+     elif align in ["right", "bottom"]:
+         descent = 0.
+-        offsets = [height - h + d for h, d in hd_list]
++        offsets = [d for h, d in hd_list]
+     elif align == "center":
+         descent = 0.
+         offsets = [(height - h) * .5 + d for h, d in hd_list]

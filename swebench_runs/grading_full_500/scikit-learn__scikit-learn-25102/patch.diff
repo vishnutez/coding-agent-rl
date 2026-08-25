@@ -1,0 +1,78 @@
+diff --git a/sklearn/utils/_set_output.py b/sklearn/utils/_set_output.py
+index 335773c6a..bec6c6042 100644
+--- a/sklearn/utils/_set_output.py
++++ b/sklearn/utils/_set_output.py
+@@ -12,6 +12,7 @@ def _wrap_in_pandas_container(
+     *,
+     columns,
+     index=None,
++    dtypes=None,
+ ):
+     """Create a Pandas DataFrame.
+ 
+@@ -36,6 +37,17 @@ def _wrap_in_pandas_container(
+     index : array-like, default=None
+         Index for data.
+ 
++    dtypes : dict, default=None
++        A dictionary mapping column names to dtypes. If provided, the output
++        DataFrame will have its columns cast to these dtypes after wrapping.
++        The dictionary keys should match the column names. If a column in
++        `dtypes` is not present in the DataFrame, it will be ignored.
++        This is useful for preserving dtypes from the original input that
++        might be lost during transformation (e.g., categorical columns,
++        specific floating point types like float16).
++
++        .. versionadded:: 1.3
++
+     Returns
+     -------
+     dataframe : DataFrame
+@@ -57,9 +69,19 @@ def _wrap_in_pandas_container(
+             data_to_wrap.columns = columns
+         if index is not None:
+             data_to_wrap.index = index
+-        return data_to_wrap
++    else:
++        data_to_wrap = pd.DataFrame(data_to_wrap, index=index, columns=columns)
+ 
+-    return pd.DataFrame(data_to_wrap, index=index, columns=columns)
++    # Apply dtype preservation if requested
++    if dtypes is not None:
++        # Filter dtypes to only include columns that exist in the DataFrame
++        existing_dtypes = {
++            col: dtype for col, dtype in dtypes.items() if col in data_to_wrap.columns
++        }
++        if existing_dtypes:
++            data_to_wrap = data_to_wrap.astype(existing_dtypes)
++
++    return data_to_wrap
+ 
+ 
+ def _get_output_config(method, estimator=None):
+@@ -127,10 +149,25 @@ def _wrap_data_with_container(method, data_to_wrap, original_input, estimator):
+         return data_to_wrap
+ 
+     # dense_config == "pandas"
++    # Get dtypes from original input if it's a DataFrame
++    # Check if it's a DataFrame by looking for dtypes attribute
++    dtypes = None
++    if hasattr(original_input, 'dtypes') and hasattr(original_input, 'columns'):
++        # Only select dtypes for columns that are in the output
++        feature_names = estimator.get_feature_names_out()
++        if hasattr(feature_names, "__iter__") and not isinstance(feature_names, str):
++            # Filter dtypes to only include columns present in output
++            dtypes = {
++                col: original_input.dtypes[col]
++                for col in feature_names
++                if col in original_input.columns
++            }
++
+     return _wrap_in_pandas_container(
+         data_to_wrap=data_to_wrap,
+         index=getattr(original_input, "index", None),
+         columns=estimator.get_feature_names_out,
++        dtypes=dtypes,
+     )
+ 
+ 

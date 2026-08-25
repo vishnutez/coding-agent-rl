@@ -1,0 +1,60 @@
+diff --git a/sympy/solvers/inequalities.py b/sympy/solvers/inequalities.py
+index 9127d217f1..3c38112652 100644
+--- a/sympy/solvers/inequalities.py
++++ b/sympy/solvers/inequalities.py
+@@ -8,6 +8,7 @@
+ from sympy.core.relational import Relational, Eq, Ge, Lt
+ from sympy.sets import Interval
+ from sympy.sets.sets import FiniteSet, Union, EmptySet, Intersection
++from sympy.sets.conditionset import ConditionSet
+ from sympy.core.singleton import S
+ from sympy.core.function import expand_mul
+ 
+@@ -528,10 +529,7 @@ def solve_univariate_inequality(expr, gen, relational=True, domain=S.Reals, cont
+             except (ValueError, NotImplementedError):
+                 # replace gen with generic x since it's
+                 # univariate anyway
+-                raise NotImplementedError(filldedent('''
+-                    The inequality, %s, cannot be solved using
+-                    solve_univariate_inequality.
+-                    ''' % expr.subs(gen, Symbol('x'))))
++                return ConditionSet(gen, expr, domain)
+ 
+             expanded_e = expand_mul(e)
+             def valid(x):
+@@ -824,6 +822,9 @@ def classify(ie, s, i):
+                 rv = reduce_rational_inequalities([[ie]], s)
+             except PolynomialError:
+                 rv = solve_univariate_inequality(ie, s)
++                # If rv is a ConditionSet, return it as-is
++                if isinstance(rv, ConditionSet):
++                    return rv
+             # remove restrictions wrt +/-oo that may have been
+             # applied when using sets to simplify the relationship
+             okoo = classify(ie, s, oo)
+@@ -905,7 +906,11 @@ def _reduce_inequalities(inequalities, symbols):
+             common = expr.free_symbols & symbols
+             if len(common) == 1:
+                 gen = common.pop()
+-                other.append(_solve_inequality(Relational(expr, 0, rel), gen))
++                sol = _solve_inequality(Relational(expr, 0, rel), gen)
++                # If solution is a ConditionSet, return it directly
++                if isinstance(sol, ConditionSet):
++                    return sol
++                other.append(sol)
+                 continue
+             else:
+                 raise NotImplementedError(filldedent('''
+@@ -921,7 +926,11 @@ def _reduce_inequalities(inequalities, symbols):
+             if components and all(isinstance(i, Abs) for i in components):
+                 abs_part.setdefault(gen, []).append((expr, rel))
+             else:
+-                other.append(_solve_inequality(Relational(expr, 0, rel), gen))
++                sol = _solve_inequality(Relational(expr, 0, rel), gen)
++                # If solution is a ConditionSet, return it directly
++                if isinstance(sol, ConditionSet):
++                    return sol
++                other.append(sol)
+ 
+     poly_reduced = []
+     abs_reduced = []

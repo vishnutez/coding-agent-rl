@@ -1,0 +1,21 @@
+diff --git a/sympy/core/sympify.py b/sympy/core/sympify.py
+index a3f1ce2851..804e10cc5e 100644
+--- a/sympy/core/sympify.py
++++ b/sympy/core/sympify.py
+@@ -467,6 +467,7 @@ def kernS(s):
+     """
+     import string
+     from random import choice
++    kern = None
+     from sympy.core.symbol import Symbol
+     hit = False
+     quoted = '"' in s or "'" in s
+@@ -513,7 +514,7 @@ def kernS(s):
+             while kern in s:
+                 kern += choice(string.ascii_letters + string.digits)
+             s = s.replace(' ', kern)
+-        hit = kern in s
++        hit = kern is not None and kern in s
+ 
+     for i in range(2):
+         try:
